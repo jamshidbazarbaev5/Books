@@ -77,5 +77,6 @@ export type RootStackParamList = {
     Writers: { screen: keyof WritersStackParamList; params?: any };
     Favorites: undefined;
     Settings: undefined;
+    Bookmarks: undefined;
     Developers: undefined;
 };

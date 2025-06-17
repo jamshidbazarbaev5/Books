@@ -79,10 +79,10 @@ const BookScreen = () => {
 
   const loadBookmarkStatus = async () => {
     try {
-      const bookmarks = await AsyncStorage.getItem('bookmarks');
-      if (bookmarks) {
-        const bookmarkList = JSON.parse(bookmarks);
-        setIsBookmarked(bookmarkList.includes(id));
+      const enhancedBookmarks = await AsyncStorage.getItem('enhanced_bookmarks');
+      if (enhancedBookmarks) {
+        const bookmarkList = JSON.parse(enhancedBookmarks);
+        setIsBookmarked(bookmarkList.some((bookmark: any) => bookmark.id === id));
       }
     } catch (error) {
       console.error('Error loading bookmark status:', error);
@@ -100,16 +100,30 @@ const BookScreen = () => {
 
   const toggleBookmark = async () => {
     try {
-      const bookmarks = await AsyncStorage.getItem('bookmarks');
-      let bookmarkList = bookmarks ? JSON.parse(bookmarks) : [];
+      const enhancedBookmarks = await AsyncStorage.getItem('enhanced_bookmarks');
+      let bookmarkList = enhancedBookmarks ? JSON.parse(enhancedBookmarks) : [];
       
       if (isBookmarked) {
-        bookmarkList = bookmarkList.filter((bookId: number) => bookId !== id);
+        bookmarkList = bookmarkList.filter((bookmark: any) => bookmark.id !== id);
       } else {
-        bookmarkList.push(id);
+        const newBookmark = {
+          id,
+          title,
+          currentScript,
+          currentScriptFile,
+          progress: currentProgress,
+          dateAdded: new Date().toISOString(),
+          position: currentProgress
+        };
+        bookmarkList.push(newBookmark);
       }
       
-      await AsyncStorage.setItem('bookmarks', JSON.stringify(bookmarkList));
+      await AsyncStorage.setItem('enhanced_bookmarks', JSON.stringify(bookmarkList));
+      
+      // Keep the simple bookmarks list for backward compatibility
+      const simpleBookmarkIds = bookmarkList.map((bookmark: any) => bookmark.id);
+      await AsyncStorage.setItem('bookmarks', JSON.stringify(simpleBookmarkIds));
+      
       setIsBookmarked(!isBookmarked);
     } catch (error) {
       console.error('Error toggling bookmark:', error);
@@ -237,6 +251,19 @@ const BookScreen = () => {
               Reading Settings
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              setShowMenu(false);
+              // Navigate to the root tab navigator's Bookmarks screen
+              navigation.getParent()?.navigate('Bookmarks');
+            }}
+          >
+            <Text style={[styles.menuItemText, { color: theme.textColor, fontSize }]}>
+              View All Bookmarks
+            </Text>
+          </TouchableOpacity>
         </View>
       </TouchableOpacity>
     )
@@ -249,6 +276,50 @@ const BookScreen = () => {
         backgroundColor={theme.backgroundColor}
         translucent={false}
       />
+
+      {/* Header */}
+      <View style={[styles.header, { backgroundColor: theme.backgroundColor }]}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <ArrowLeft width={24} height={24} color={theme.textColor} />
+        </TouchableOpacity>
+
+        <Text 
+          style={[styles.headerTitle, { color: theme.textColor }]} 
+          numberOfLines={1}
+        >
+          {title}
+        </Text>
+
+        <View style={styles.headerRight}>
+          <TouchableOpacity 
+            style={styles.headerIconButton}
+            onPress={toggleBookmark}
+          >
+            <Bookmark 
+              width={22} 
+              height={22} 
+              color={isBookmarked ? theme.accentColor : theme.textColor}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.headerIconButton}
+            onPress={shareBook}
+          >
+            <ShareIcon width={22} height={22} color={theme.textColor} />
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.headerIconButton}
+            onPress={() => setShowMenu(true)}
+          >
+            <MoreVertical width={22} height={22} color={theme.textColor} />
+          </TouchableOpacity>
+        </View>
+      </View>
       
       {/* EPUB Reader */}
       <View style={styles.readerContainer}>
@@ -261,23 +332,6 @@ const BookScreen = () => {
           onError={handleReaderError}
         />
       </View>
-
-      {/* Script Switcher Button */}
-      <TouchableOpacity
-        style={[styles.scriptButton, { backgroundColor: theme.accentColor }]}
-        onPress={switchScript}
-      >
-        <View style={styles.scriptButtonInner}>
-          <Text style={[styles.scriptText, { fontSize: fontSize * 0.9 }]}>
-            {currentScript.toUpperCase()}
-          </Text>
-          {otherScriptFile && (
-            <View style={styles.switchIndicator}>
-              <Text style={styles.switchArrow}>⟳</Text>
-            </View>
-          )}
-        </View>
-      </TouchableOpacity>
 
       {/* Menu Overlay */}
       <MenuOverlay />
@@ -292,42 +346,7 @@ const styles = StyleSheet.create({
   readerContainer: {
     flex: 1,
   },
-  scriptButton: {
-    position: 'absolute',
-    top: 20,
-    right: 16,
-    minWidth: 50,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-    zIndex: 1000,
-  },
-  scriptButtonInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    gap: 4,
-  },
-  scriptText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  switchIndicator: {
-    marginLeft: 4,
-  },
-  switchArrow: {
-    color: '#FFFFFF',
-    fontSize: 16,
-  },
+
   menuOverlay: {
     position: 'absolute',
     top: 0,
@@ -356,6 +375,33 @@ const styles = StyleSheet.create({
   },
   menuItemText: {
     fontWeight: '500',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    height: 56,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  backButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  headerTitle: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '600',
+    marginHorizontal: 8,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerIconButton: {
+    padding: 8,
+    marginLeft: 4,
   },
 });
 

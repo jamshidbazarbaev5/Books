@@ -17,6 +17,7 @@ import BookListScreen from "./src/screens/BookListScreen.tsx"
 import DevelopersScreen from "./src/screens/DevelopersScreen"
 import NationalWritingsScreen from "./src/screens/NationalWritingsScreen"
 import ss from "./src/screens/ss.tsx"
+import BookmarksScreen from "./src/screens/BookmarksScreen"
 import IntroductionScreen from "./src/screens/IntroductionScreen"
 
 const Tab = createBottomTabNavigator()
@@ -74,6 +75,8 @@ function TabNavigator() {
       <Tab.Screen name="Favorites" component={FavoritesScreen} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
       <Tab.Screen name="ss" component={ss} />
+      <Tab.Screen name="Bookmarks" component={BookmarksScreen} />
+
       <Tab.Screen 
         name="Developers" 
         component={DevelopersScreen} 
