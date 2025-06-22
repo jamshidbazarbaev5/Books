@@ -14,7 +14,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import EpubReader from '../components/EpubReader';
+// Removed EpubReader in favour of PopReader with curling effect
+import PopReader from '../components/PopReader';
+import JSZip from 'jszip';
+
 import {
   ArrowLeft,
   Settings,
@@ -38,6 +41,9 @@ type BookScreenRouteProp = RouteProp<{
 
 const { width, height } = Dimensions.get('window');
 
+// Utility to strip HTML tags (basic)
+const stripHtml = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
 const BookScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<BookScreenRouteProp>();
@@ -54,17 +60,26 @@ const BookScreen = () => {
     otherScriptFile,
   } = route.params;
 
-  const [isReaderReady, setIsReaderReady] = useState(false);
   const [currentProgress, setCurrentProgress] = useState<any>(null);
-  const [showControls, setShowControls] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  // PopReader state
+  const [bookText, setBookText] = useState<string | null>(null);
+  const [loadingText, setLoadingText] = useState<boolean>(false);
+  const [extractError, setExtractError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load saved progress
     loadSavedProgress();
     loadBookmarkStatus();
   }, [id]);
+
+  // Extract text whenever the epub URL changes
+  useEffect(() => {
+    if (currentScriptFile) {
+      extractEpubText(currentScriptFile);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentScriptFile]);
 
   const loadSavedProgress = async () => {
     try {
@@ -179,9 +194,36 @@ const BookScreen = () => {
     setTimeout(() => setShowControls(false), 3000);
   };
 
-  const handleReaderReady = () => {
-    setIsReaderReady(true);
-    console.log('EPUB reader is ready');
+  // ---- EPUB → plain text extraction ---------------------------------
+  const extractEpubText = async (url: string) => {
+    setLoadingText(true);
+    setExtractError(null);
+    try {
+      const response = await fetch(url);
+      const arrayBuffer = await response.arrayBuffer();
+      const zip = await JSZip.loadAsync(arrayBuffer);
+
+      let combinedText = '';
+      const tasks: Promise<void>[] = [];
+
+      zip.forEach((relativePath, file) => {
+        if (/\.(xhtml|html)$/i.test(relativePath)) {
+          tasks.push(
+            file.async('text').then((content) => {
+              combinedText += ' ' + stripHtml(content);
+            })
+          );
+        }
+      });
+
+      await Promise.all(tasks);
+      setBookText(combinedText);
+    } catch (e) {
+      console.error('EPUB extract error', e);
+      setExtractError('Failed to load book');
+    } finally {
+      setLoadingText(false);
+    }
   };
 
   const handleProgress = (progress: any) => {
@@ -321,16 +363,23 @@ const BookScreen = () => {
         </View>
       </View>
       
-      {/* EPUB Reader */}
       <View style={styles.readerContainer}>
-        <EpubReader
-          epubUrl={currentScriptFile}
-          bookId={`${id}-${currentScript}`}
-          bookTitle={title}
-          onReady={handleReaderReady}
-          onProgress={handleProgress}
-          onError={handleReaderError}
-        />
+        {loadingText && (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Text>Loading book...</Text>
+          </View>
+        )}
+        {extractError && (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Text>{extractError}</Text>
+          </View>
+        )}
+        {bookText && (
+          <PopReader
+            title={title}
+            content={bookText}
+          />
+        )}
       </View>
 
       {/* Menu Overlay */}
