@@ -1,80 +1,183 @@
-"use client"
+import React, { useState, useRef } from 'react';
+import {
+  View,
+  Image,
+  StyleSheet,
+  Dimensions,
+  ScrollView,
+  TouchableOpacity,
+  Animated,
+  ViewStyle,
+} from 'react-native';
 
-import { useState, useRef } from "react"
-import { View, Image, StyleSheet, Dimensions, FlatList, TouchableOpacity } from "react-native"
-import { useTheme } from "../context/ThemeContext"
+const { width: screenWidth } = Dimensions.get('window');
 
-const { width } = Dimensions.get("window")
-
-const ImageSlider = ({ images }:{images:any}) => {
-    const { theme } = useTheme()
-    const [activeIndex, setActiveIndex] = useState(0)
-    const flatListRef = useRef(null)
-
-    const handleScroll = (event:any) => {
-        const slideIndex = Math.floor(event.nativeEvent.contentOffset.x / width)
-        if (slideIndex !== activeIndex) {
-            setActiveIndex(slideIndex)
-        }
-    }
-
-    const goToSlide = (index) => {
-        if (flatListRef.current) {
-            flatListRef.current.scrollToOffset({ offset: index * width, animated: true })
-        }
-    }
-
-    return (
-        <View style={styles.container}>
-            <FlatList
-                ref={flatListRef}
-                data={images}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onScroll={handleScroll}
-                renderItem={({ item }) => <Image source={{ uri: item }} style={styles.image} />}
-                keyExtractor={(_, index) => index.toString()}
-            />
-
-            <View style={styles.pagination}>
-                {images.map((_:any, index:any) => (
-                    <TouchableOpacity
-                        key={index}
-                        style={[
-                            styles.paginationDot,
-                            { backgroundColor: index === activeIndex ? theme.accentColor : theme.secondaryTextColor },
-                        ]}
-                        onPress={() => goToSlide(index)}
-                    />
-                ))}
-            </View>
-        </View>
-    )
+interface ImageSliderProps {
+  images: string[];
+  containerStyle?: ViewStyle;
+  autoPlay?: boolean;
+  autoPlayInterval?: number;
 }
 
-const styles = StyleSheet.create({
-    container: {
-        height: 250,
-    },
-    image: {
-        width,
-        height: 250,
-        resizeMode: "cover",
-    },
-    pagination: {
-        flexDirection: "row",
-        position: "absolute",
-        bottom: 16,
-        alignSelf: "center",
-    },
-    paginationDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        marginHorizontal: 4,
-        opacity: 0.8,
-    },
-})
+const ImageSlider: React.FC<ImageSliderProps> = ({
+  images,
+  containerStyle,
+  autoPlay = true,
+  autoPlayInterval = 3000,
+}) => {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
-export default ImageSlider
+  // Handle auto play
+  React.useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    if (autoPlay && images.length > 1) {
+      intervalId = setInterval(() => {
+        const nextIndex = (activeIndex + 1) % images.length;
+        scrollToImage(nextIndex);
+      }, autoPlayInterval);
+    }
+
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [activeIndex, autoPlay, images.length, autoPlayInterval]);
+
+  const scrollToImage = (index: number) => {
+    // Fade out current image
+    Animated.timing(fadeAnim, {
+      toValue: 0.7,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      // Scroll to new image
+      scrollViewRef.current?.scrollTo({
+        x: index * screenWidth,
+        animated: true,
+      });
+
+      // Fade in new image
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 150,
+        useNativeDriver: true,
+      }).start();
+    });
+
+    setActiveIndex(index);
+  };
+
+  const handleScroll = (event: any) => {
+    const contentOffset = event.nativeEvent.contentOffset;
+    const index = Math.round(contentOffset.x / screenWidth);
+    if (index !== activeIndex) {
+      setActiveIndex(index);
+    }
+  };
+
+  // Handle single image case
+  if (images.length === 0) {
+    return null;
+  }
+
+  if (images.length === 1) {
+    return (
+      <View style={[styles.container, containerStyle]}>
+        <Image
+          source={{ uri: images[0] }}
+          style={styles.image}
+          resizeMode="cover"
+        />
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.container, containerStyle]}>
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      >
+        {images.map((imageUrl, index) => (
+          <Animated.View
+            key={`${imageUrl}-${index}`}
+            style={[styles.imageContainer, { opacity: fadeAnim }]}
+          >
+            <Image
+              source={{ uri: imageUrl }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+          </Animated.View>
+        ))}
+      </ScrollView>
+
+      {images.length > 1 && (
+        <View style={styles.pagination}>
+          {images.map((_, index) => (
+            <TouchableOpacity
+              key={index}
+              onPress={() => scrollToImage(index)}
+              style={[
+                styles.paginationDot,
+                index === activeIndex && styles.paginationDotActive,
+              ]}
+            />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    width: screenWidth,
+    height: '100%',
+    backgroundColor: '#f5f5f5',
+    overflow: 'hidden',
+  },
+  imageContainer: {
+    width: screenWidth,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  image: {
+    width: screenWidth,
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  pagination: {
+    position: 'absolute',
+    bottom: 16,
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  paginationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    margin: 4,
+  },
+  paginationDotActive: {
+    backgroundColor: '#fff',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+});
+
+export default ImageSlider;

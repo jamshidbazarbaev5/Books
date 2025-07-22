@@ -4,6 +4,7 @@ import { View, Text, StyleSheet, Dimensions, ScrollView, TouchableOpacity, Anima
 import { useRoute, RouteProp, useNavigation } from "@react-navigation/native"
 import { useTheme } from "../context/ThemeContext"
 import { useSettings } from "../context/SettingsContext"
+import { useLanguage } from "../context/LanguageContext"
 import { ArrowLeft, Heart, Moon, Sun, AlignLeft, AlignCenter, Play, Pause } from "react-native-feather"
 import { useState, useRef, useEffect } from "react"
 import { WritersStackParamList, Poem, Writer } from "../types/navigation"
@@ -18,6 +19,7 @@ const PoemScreen = () => {
   const { poem, writer } = route.params
   const { theme, toggleTheme, isDarkMode } = useTheme()
   const { fontSize, poemFontSize, setPoemFontSize, isFavorite, addToFavorites, removeFromFavorites, script } = useSettings()
+  const { translations } = useLanguage()
   const [isTextAlignCenter, setIsTextAlignCenter] = useState(false)
   const [controlsVisible, setControlsVisible] = useState(true)
   const [isPlaying, setIsPlaying] = useState(false)

@@ -18,6 +18,7 @@ import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Book } from '../types/navigation';
 import { booksApi } from '../api/books';
 import { ArrowLeft, BookOpen, Clock, Search } from 'react-native-feather';
@@ -28,6 +29,7 @@ const BookListScreen = () => {
   const navigation = useNavigation<any>();
   const { theme } = useTheme();
   const { fontSize, readingProgress, script } = useSettings();
+  const { translations } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [books, setBooks] = useState<Book[]>([]);
@@ -110,42 +112,25 @@ const BookListScreen = () => {
       <TouchableOpacity
         style={[styles.bookItem, { backgroundColor: theme.cardBackground }]}
         onPress={() => {
-          if (!currentScriptFile) {
-            if (otherScriptFile) {
-              Alert.alert(
-                "Switch Script to Read",
-                `This book is available in ${script === 'lat' ? 'Cyrillic' : 'Latin'} script. Would you like to go to Settings to change the script?`,
-                [
-                  {
-                    text: "Cancel",
-                    style: "cancel"
-                  },
-                  {
-                    text: "Go to Settings",
-                    onPress: () => navigation.navigate('Settings')
-                  }
-                ]
-              );
-            } else {
-              Alert.alert(
-                "EPUB Not Available",
-                "This book is not yet available in electronic format for either Latin or Cyrillic script."
-              );
-            }
+          // If book is not available in current script but available in other script,
+          // use the other script file
+          const fileToUse = currentScriptFile || otherScriptFile;
+          
+          if (!fileToUse) {
+            Alert.alert(
+              "EPUB Not Available",
+              "This book is not yet available in electronic format for either Latin or Cyrillic script."
+            );
             return;
           }
+
           navigation.navigate('Writers', {
-            screen: 'Book',
-            params: { 
-              id: book.id,
+            screen: 'AdvancedEpubReader',
+            params: {
               title,
-              currentScript: script,
-              currentScriptFile,
-              epub_file_cyr: book.epub_file_cyr,
-              epub_file_lat: book.epub_file_lat,
-              otherScriptFile,
-              rawEpubFile: book.epub_file
-            }
+              epubUrl: fileToUse,
+              initialPage: 0,
+            },
           });
         }}
         activeOpacity={0.7}
@@ -182,7 +167,7 @@ const BookListScreen = () => {
             <View style={styles.progressContainer}>
               <Clock width={14} height={14} color={theme.accentColor} style={styles.progressIcon} />
               <Text style={[styles.progressText, { color: theme.accentColor, fontSize: fontSize * 0.8 }]}>
-                {Math.round(progress.position * 100)}% completed
+                {Math.round(progress.position * 100)}% {translations.completed}
               </Text>
             </View>
           )}
@@ -210,7 +195,7 @@ const BookListScreen = () => {
             style={[styles.retryButton, { backgroundColor: theme.accentColor }]}
             onPress={fetchBooks}
           >
-            <Text style={styles.retryButtonText}>Retry</Text>
+            <Text style={styles.retryButtonText}>{translations.retry}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -220,14 +205,14 @@ const BookListScreen = () => {
   const EmptyState = () => (
     <View style={styles.emptyState}>
       <Text style={[styles.emptyStateText, { color: theme.secondaryTextColor, fontSize: fontSize * 1.1 }]}>
-        No books found for "{searchQuery}"
+        {translations.noBooks}
       </Text>
       <TouchableOpacity 
         style={[styles.emptyStateButton, { backgroundColor: theme.accentColor }]}
         onPress={() => setSearchQuery('')}
       >
         <Text style={[styles.emptyStateButtonText, { color: '#fff', fontSize: fontSize }]}>
-          Clear Search
+          {translations.cancel}
         </Text>
       </TouchableOpacity>
     </View>
@@ -246,7 +231,7 @@ const BookListScreen = () => {
             <ArrowLeft width={24} height={24} color={theme.textColor} />
           </TouchableOpacity>
           <Text style={[styles.title, { color: theme.textColor, fontSize: fontSize * 1.5 }]}>
-            Books
+            {translations.books}
           </Text>
         </View>
         
@@ -254,7 +239,7 @@ const BookListScreen = () => {
           <Search width={20} height={20} color={theme.secondaryTextColor} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: theme.textColor, fontSize: fontSize * 1.1 }]}
-            placeholder="Search books..."
+            placeholder={translations.searchBooks}
             placeholderTextColor={theme.secondaryTextColor}
             value={searchQuery}
             onChangeText={setSearchQuery}

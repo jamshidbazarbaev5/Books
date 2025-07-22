@@ -2,10 +2,11 @@ import { createStackNavigator } from "@react-navigation/stack"
 import WritersScreen from "../screens/WritersScreen"
 import WriterDetailScreen from "../screens/WriterDetailScreen"
 import PoemScreen from "../screens/PoemScreen"
-import BookScreen from '../screens/BookScreen'
+// import BookScreen from '../screens/BookScreen'
 import BookListScreen from "../screens/BookListScreen"
 import RiddleScreen from '../screens/RiddleScreen'
 import NationalWritingsScreen from "../screens/NationalWritingsScreen"
+import AdvancedEpubReaderScreen from "../screens/AdvancedEpubReaderScreen"
 import { useTheme } from "../context/ThemeContext"
 import { useSettings } from "../context/SettingsContext"
 import { WritersStackParamList } from "../types/navigation"
@@ -35,7 +36,7 @@ const WritersNavigator = () => {
             <Stack.Screen
                 name="WriterDetail"
                 component={WriterDetailScreen}
-                options={({ route }) => ({ title: route.params?.writer?.name || "Writer", headerShown: true })}
+                options={({ route }) => ({ title: route.params?.writer?.name_cyr, })}
             />
             <Stack.Screen
                 name="Poem"
@@ -47,7 +48,7 @@ const WritersNavigator = () => {
                 component={BookListScreen}
                 options={{ headerShown: false }}
             />
-            <Stack.Screen
+            {/* <Stack.Screen
                 name="Book"
                 component={BookScreen}
                 options={({ route }) => ({ 
@@ -71,7 +72,7 @@ const WritersNavigator = () => {
                         </Text>
                     )
                 })}
-            />
+            /> */}
             <Stack.Screen
                 name="Riddle"
                 component={RiddleScreen}
@@ -81,6 +82,11 @@ const WritersNavigator = () => {
                 name="NationalWritings"
                 component={NationalWritingsScreen}
                 options={{ title: "National Writings" }}
+            />
+            <Stack.Screen
+                name="AdvancedEpubReader"
+                component={AdvancedEpubReaderScreen}
+                options={{ headerShown: false }}
             />
         </Stack.Navigator>
     )

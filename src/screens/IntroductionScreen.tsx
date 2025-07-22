@@ -13,6 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { Book, Heart, Users, Globe } from 'react-native-feather';
 import { useSettings } from '../context/SettingsContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
@@ -20,6 +21,7 @@ const IntroductionScreen = () => {
   const navigation = useNavigation();
   const { theme } = useTheme();
   const { fontSize } = useSettings();
+  const { translations } = useLanguage();
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef(null);
 
@@ -47,36 +49,36 @@ const IntroductionScreen = () => {
     {
       id: 'welcome',
       type: 'welcome',
-      title: 'Welcome to Books',
-      subtitle: 'Your personal literary companion',
+      title: translations.welcome,
+      subtitle: translations.welcomeSubtitle,
     },
     {
       id: 'writers',
       type: 'feature',
       icon: <Users width={48} height={48} color={theme.accentColor} />,
-      title: 'Writers Collection',
-      description: 'Explore our vast collection of talented writers and their works',
+      title: translations.writersCollection,
+      description: translations.writersDescription,
     },
     {
       id: 'books',
       type: 'feature',
       icon: <Book width={48} height={48} color={theme.accentColor} />,
-      title: 'Digital Library',
-      description: 'Access a wide range of books at your fingertips',
+      title: translations.digitalLibrary,
+      description: translations.digitalLibraryDesc,
     },
     {
       id: 'national',
       type: 'feature',
       icon: <Globe width={48} height={48} color={theme.accentColor} />,
-      title: 'National Writings',
-      description: 'Discover literary works from different cultures',
+      title: translations.nationalWritingsTitle,
+      description: translations.nationalWritingsDesc,
     },
     {
       id: 'favorites',
       type: 'feature',
       icon: <Heart width={48} height={48} color={theme.accentColor} />,
-      title: 'Favorites',
-      description: 'Save and organize your favorite content',
+      title: translations.favoritesTitle,
+      description: translations.favoritesDesc,
     },
   ];
 
@@ -185,7 +187,7 @@ const IntroductionScreen = () => {
             onPress={() => navigation.navigate('Writers')}
           >
             <Text style={[styles.buttonText, { fontSize: fontSize * 1.2 }]}>
-              Start Exploring
+              {translations.startExploring}
             </Text>
           </TouchableOpacity>
         </Animated.View>

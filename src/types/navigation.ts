@@ -71,6 +71,15 @@ export type WritersStackParamList = {
         otherScriptFile?: string;
         audio?: string | AudioPaths;
     };
+    AdvancedEpubReader: {
+        title: string;
+        epubUrl: string;
+        initialPage?: number;
+    };
+    // existing screens not typed earlier
+    BookList?: any;
+    Riddle?: any;
+    NationalWritings?: any;
 };
 
 export type RootStackParamList = {

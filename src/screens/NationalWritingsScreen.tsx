@@ -8,12 +8,14 @@ import {
   Dimensions, 
   TextInput,
   StatusBar,
-  ActivityIndicator
+  ActivityIndicator,
+  ScrollView
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import { useSettings } from '../context/SettingsContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Writer, Poem } from '../types/navigation';
 import { mockWriters } from '../data/mockData';
 import { Filter, Book, HelpCircle, Search, ArrowLeft } from 'react-native-feather';
@@ -30,6 +32,7 @@ const NationalWritingsScreen = () => {
   const navigation = useNavigation<any>();
   const { theme } = useTheme();
   const { fontSize } = useSettings();
+  const { translations } = useLanguage();
   const [selectedType, setSelectedType] = useState<WritingType>('poems');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -162,7 +165,7 @@ const NationalWritingsScreen = () => {
             <ArrowLeft width={24} height={24} color={theme.textColor} />
           </TouchableOpacity>
           <Text style={[styles.title, { color: theme.textColor, fontSize: fontSize * 1.5 }]}>
-            National Writings
+            {translations.nationalWritings}
           </Text>
         </View>
         
@@ -170,7 +173,7 @@ const NationalWritingsScreen = () => {
           <Search width={20} height={20} color={theme.secondaryTextColor} style={styles.searchIcon} />
           <TextInput
             style={[styles.searchInput, { color: theme.textColor, fontSize: fontSize * 1.1 }]}
-            placeholder="Search writings..."
+            placeholder={translations.searchNationalWritings}
             placeholderTextColor={theme.secondaryTextColor}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -184,7 +187,12 @@ const NationalWritingsScreen = () => {
           )}
         </View>
 
-        <View style={styles.filterContainer}>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          style={styles.filterContainer}
+          contentContainerStyle={styles.filterContentContainer}
+        >
           <TouchableOpacity
             style={[
               styles.filterButton,
@@ -207,7 +215,7 @@ const NationalWritingsScreen = () => {
                 fontSize: fontSize
               }
             ]}>
-              Poems
+              {translations.poems}
             </Text>
           </TouchableOpacity>
           
@@ -233,7 +241,7 @@ const NationalWritingsScreen = () => {
                 fontSize: fontSize
               }
             ]}>
-              Books
+              {translations.books}
             </Text>
           </TouchableOpacity>
 
@@ -259,10 +267,10 @@ const NationalWritingsScreen = () => {
                 fontSize: fontSize
               }
             ]}>
-              Riddles
+              {translations.riddles}
             </Text>
           </TouchableOpacity>
-        </View>
+        </ScrollView>
       </View>
 
       {isLoading ? (
@@ -337,9 +345,12 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   filterContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     paddingHorizontal: 8,
+  },
+  filterContentContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    paddingRight: 8,
   },
   filterButton: {
     flexDirection: 'row',

@@ -244,10 +244,13 @@ const WriterDetailScreen = () => {
     )
 
     return (
-        <SafeAreaView style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
-            <ScrollView showsVerticalScrollIndicator={false}>
+        <SafeAreaView edges={['bottom', 'left', 'right']} style={[styles.container, { backgroundColor: theme.backgroundColor }]}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingTop: 0 }}>
                 <View style={styles.header}>
-                    <ImageSlider images={gallery} />
+                    <ImageSlider 
+                        images={gallery}
+                        containerStyle={{ width: width, height: width }}
+                    />
                 </View>
 
                 <ScrollView 
@@ -345,8 +348,10 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     header: {
-        height: width * 0.6, // Make header height responsive
-        maxHeight: 300,
+        height: width,
+        width: width,
+        overflow: 'hidden',
+        backgroundColor: '#f5f5f5',
     },
     tabContainer: {
         flexDirection: "row",
