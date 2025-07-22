@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useTheme } from '../context/ThemeContext';
 import JSZip from 'jszip';
 import PageCurlReader from '../components/PageCurlReader';
 import { splitIntoPages } from '../utils/pagination';
@@ -34,6 +35,8 @@ const stripHtml = (html: string) =>
 const AdvancedEpubReaderScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<AdvancedEpubReaderRouteProp>();
+  const { isDarkMode } = useTheme();
+  const styles = getStyles(isDarkMode);
 
   const { title, epubUrl, initialPage = 0 } = route.params;
 
@@ -46,6 +49,10 @@ const AdvancedEpubReaderScreen = () => {
   // ------------------------------------------------------------------
   //  Load & extract EPUB as plain text on mount
   // ------------------------------------------------------------------
+
+
+
+  
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -142,15 +149,22 @@ const AdvancedEpubReaderScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+const getStyles = (isDarkMode: boolean) => StyleSheet.create({
+  container: { 
+    flex: 1, 
+    backgroundColor: isDarkMode ? '#1a1a1a' : '#f5f5f5' 
+  },
   center: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: isDarkMode ? '#1a1a1a' : '#f5f5f5',
   },
-  loadingText: { marginTop: 12, fontSize: 16 },
+  loadingText: { 
+    marginTop: 12, 
+    fontSize: 16,
+    color: isDarkMode ? '#e0e0e0' : '#000000'
+  },
 });
 
 export default AdvancedEpubReaderScreen;

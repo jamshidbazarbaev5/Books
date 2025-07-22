@@ -20,6 +20,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useLanguage } from "../context/LanguageContext";
+import { useTheme } from "../context/ThemeContext";
 
 
 interface PageCurlReaderProps {
@@ -32,13 +33,22 @@ interface PageCurlReaderProps {
 
 const { width, height } = Dimensions.get("window");
 
-const theme = {
+const lightTheme = {
   background: "#f0eade",
   pageBackground: "#fdf8f1",
   textColor: "#3d3a37",
   headerColor: "#2c2a28",
   subtleText: "#8a817c",
   shadowColor: "#4e433d",
+};
+
+const darkTheme = {
+  background: "#1a1a1a",
+  pageBackground: "#2d2d2d",
+  textColor: "#e0e0e0",
+  headerColor: "#ffffff",
+  subtleText: "#a0a0a0",
+  shadowColor: "#000000",
 };
 
 const PageCurlReader = forwardRef<any, PageCurlReaderProps>(
@@ -52,6 +62,9 @@ const PageCurlReader = forwardRef<any, PageCurlReaderProps>(
     },
     ref
   ) => {
+    const { isDarkMode } = useTheme();
+    const theme = isDarkMode ? darkTheme : lightTheme;
+
     /* ------------------------------------------------------------------ */
     /* Split text into pages                                             */
     /* ------------------------------------------------------------------ */
@@ -187,10 +200,98 @@ const PageCurlReader = forwardRef<any, PageCurlReaderProps>(
       },
     }));
 
+    const styles = StyleSheet.create({
+      container: {
+        flex: 1,
+        backgroundColor: theme.background,
+      },
+      center: { justifyContent: "center", alignItems: "center" },
+      header: {
+        paddingHorizontal: 24,
+        paddingVertical: 16,
+        flexDirection: 'row',
+        alignItems: "center",
+        justifyContent: "flex-start",
+        width: '70%',
+      },
+      titleContainer: {
+        flex: 1,
+        marginRight: 16,
+      },
+      title: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: theme.headerColor,
+        fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+        maxWidth: '100%',
+      },
+      bookContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+      },
+      page: {
+        position: "absolute",
+        width: width - 10,
+        height: height - 200,
+        backgroundColor: theme.pageBackground,
+        borderRadius: 8,
+        padding: 24,
+        ...Platform.select({
+          ios: {
+            shadowColor: theme.shadowColor,
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 10,
+          },
+          android: {
+            elevation: 6,
+            shadowColor: theme.shadowColor,
+          },
+        }),
+      },
+      content: {
+        fontSize: 16,
+        lineHeight: 26,
+        color: theme.textColor,
+        fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+      },
+      cornerCurl: {
+        position: "absolute",
+        bottom: 0,
+        right: 0,
+        width: 60,
+        height: 60,
+        overflow: "hidden",
+      },
+      cornerGradient: {
+        flex: 1,
+      },
+      gradientOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 100 },
+      footer: {
+        position: "absolute",
+        top: 0,
+        right: 18,
+        zIndex: 2,
+        paddingVertical: 18,
+        paddingLeft: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+        width: '40%',
+      },
+      pageIndicator: {
+        fontSize: 14,
+        color: theme.subtleText,
+        fontFamily: Platform.OS === 'ios' ? 'Iowan Old Style' : 'serif',
+        textAlign: 'right',
+      }
+    });
+
     if (totalPages === 0) {
-      return (
+      return (      
         <View style={[styles.container, styles.center]}>
-          <Text>No content available</Text>
+          <Text style={styles.content}>No content available</Text>
         </View>
       );
     }
@@ -200,7 +301,10 @@ const PageCurlReader = forwardRef<any, PageCurlReaderProps>(
     /* ------------------------------------------------------------------ */
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor={theme.background} />
+        <StatusBar 
+          barStyle={isDarkMode ? "light-content" : "dark-content"} 
+          backgroundColor={theme.background}
+        />
         {title && (
           <View style={styles.header}>
             <Text style={styles.title} numberOfLines={1} ellipsizeMode="middle">{title}</Text>
@@ -270,94 +374,4 @@ const PageCurlReader = forwardRef<any, PageCurlReaderProps>(
   }
 );
 
-/* -------------------------------------------------------------------- */
-/* Styles                                                              */
-/* -------------------------------------------------------------------- */
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.background,
-  },
-  center: { justifyContent: "center", alignItems: "center" },
-  header: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: "center",
-    justifyContent: "flex-start",
-    width: '70%',  // Reduced width to prevent overlap
-  },
-  titleContainer: {
-    flex: 1,
-    marginRight: 16,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: theme.headerColor,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    maxWidth: '100%',  // Ensure text stays within container
-  },
-  bookContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  page: {
-    position: "absolute",
-    width: width - 10,
-    height: height - 200,
-    backgroundColor: theme.pageBackground,
-    borderRadius: 8,
-    padding: 24,
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.shadowColor,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 6,
-        shadowColor: theme.shadowColor,
-      },
-    }),
-  },
-  content: {
-    fontSize: 16,
-    lineHeight: 26,
-    color: theme.textColor,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  cornerCurl: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 60,
-    height: 60,
-    overflow: "hidden",
-  },
-  cornerGradient: {
-    flex: 1,
-  },
-  gradientOverlay: { ...StyleSheet.absoluteFillObject, zIndex: 100 },
-  footer: {
-    position: "absolute",
-    top: 0,
-    right: 18,
-    zIndex: 2,
-    paddingVertical: 18,
-    paddingLeft: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    width: '40%',  // Fixed width for page counter
-  },
-  pageIndicator: {
-    fontSize: 14,
-    color: theme.subtleText,
-    fontFamily: Platform.OS === 'ios' ? 'Iowan Old Style' : 'serif',
-    textAlign: 'right',
-  }
-});
 export default PageCurlReader
