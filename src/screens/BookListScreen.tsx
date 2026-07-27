@@ -7,13 +7,13 @@ import {
   StyleSheet, 
   FlatList, 
   TouchableOpacity, 
-  TextInput, 
   Dimensions,
   StatusBar,
   ActivityIndicator,
   Image,
   Alert
 } from 'react-native';
+import SearchBar from '../components/SearchBar';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
@@ -62,7 +62,7 @@ const BookListScreen = () => {
       const title = script === 'lat' ? book.title_lat : book.title_cyr;
       const description = script === 'lat' ? book.description_lat : book.description_cyr;
       
-      return title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      return title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
              description?.toLowerCase().includes(searchQuery.toLowerCase());
     });
   }, [books, searchQuery, script]);    const renderBookItem = ({ item: book }: { item: Book }) => {
@@ -129,7 +129,8 @@ const BookListScreen = () => {
             params: {
               title,
               epubUrl: fileToUse,
-              initialPage: 0,
+              bookId: book.id,
+              initialPage: readingProgress[book.id]?.position || 0,
             },
           });
         }}
@@ -167,7 +168,7 @@ const BookListScreen = () => {
             <View style={styles.progressContainer}>
               <Clock width={14} height={14} color={theme.accentColor} style={styles.progressIcon} />
               <Text style={[styles.progressText, { color: theme.accentColor, fontSize: fontSize * 0.8 }]}>
-                {Math.round(progress.position * 100)}% {translations.completed}
+                {progress.totalPages ? `${Math.round((progress.position / progress.totalPages) * 100)}%` : ''} {translations.completed}
               </Text>
             </View>
           )}
@@ -235,23 +236,10 @@ const BookListScreen = () => {
           </Text>
         </View>
         
-        <View style={[styles.searchContainer, { backgroundColor: theme.inputBackground }]}>
-          <Search width={20} height={20} color={theme.secondaryTextColor} style={styles.searchIcon} />
-          <TextInput
-            style={[styles.searchInput, { color: theme.textColor, fontSize: fontSize * 1.1 }]}
-            placeholder={translations.searchBooks}
-            placeholderTextColor={theme.secondaryTextColor}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <View style={[styles.clearButton, { backgroundColor: theme.secondaryTextColor }]}>
-                <Text style={[styles.clearButtonText, { color: theme.cardBackground }]}>×</Text>
-              </View>
-            </TouchableOpacity>
-          )}
-        </View>
+        <SearchBar
+          onSearch={setSearchQuery}
+          placeholder={translations.searchBooks}
+        />
       </View>
 
       {filteredBooks.length > 0 ? (
@@ -296,31 +284,7 @@ const styles = StyleSheet.create({
   title: {
     fontWeight: 'bold',
   },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    borderRadius: 16,
-    marginBottom: 8,
-  },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-  },
-  clearButton: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  clearButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    lineHeight: 20,
-  },
+
   contentContainer: {
     padding: 16,
     paddingBottom: 32,

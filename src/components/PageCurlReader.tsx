@@ -1,4 +1,7 @@
 import React, { useRef, useState, useMemo, forwardRef, useImperativeHandle, useEffect } from "react";
+import { TouchableOpacity, Modal, Animated as RNAnimated } from "react-native";
+import { Menu, Minus, Plus, Star, Star as StarFilled, Star as StarOutline, X } from 'react-native-feather';
+import { useSettings } from "../context/SettingsContext";
 import {
   View,
   Text,
@@ -68,25 +71,38 @@ const PageCurlReader = forwardRef<any, PageCurlReaderProps>(
     /* ------------------------------------------------------------------ */
     /* Split text into pages                                             */
     /* ------------------------------------------------------------------ */
-    const FONT_SIZE = 16;
-    const LINE_HEIGHT = 26;
-    const pages = useMemo(() => splitIntoPages(content, FONT_SIZE, LINE_HEIGHT), [
-      content,
-      wordsPerPage,
-    ]);
+const DEFAULT_FONT_SIZE = 16;
+const DEFAULT_LINE_HEIGHT = 26;
+const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
+const [lineHeight, setLineHeight] = useState(DEFAULT_LINE_HEIGHT);
+const pages = useMemo(() => splitIntoPages(content, fontSize, lineHeight), [content, fontSize, lineHeight]);
 
     /* ------------------------------------------------------------------ */
     /* Pagination state                                                  */
     /* ------------------------------------------------------------------ */
-    const [currentPage, setCurrentPage] = useState(initialPage);
-    const totalPages = pages.length;
-    const {translations} = useLanguage();
-    console.log('Current translations:', translations);
-    const translateX = useSharedValue(0);
-    const isAnimating = useSharedValue(false);
-    const { playSound } = usePageTurnSound();
+
+const [currentPage, setCurrentPage] = useState(initialPage);
+const totalPages = pages.length;
+const {translations} = useLanguage();
+const translateX = useSharedValue(0);
+const isAnimating = useSharedValue(false);
+const { playSound } = usePageTurnSound();
+
+// Favourites state (global)
+const { addToFavorites, favorites } = useSettings();
+
+    // Controls bar state (top bar, not modal)
+    const [controlsVisible, setControlsVisible] = useState(false);
 
     const safeCurrentPage = Math.min(Math.max(0, currentPage), totalPages - 1);
+    // Define a 'book page' as a favourite item
+    const bookId = title ? title : "Untitled"; // Use title as bookId for now
+    const pageSnippet = pages[safeCurrentPage]?.slice(0, 120) || "";
+    type FavoriteItem = {
+      writer: { name: string };
+      poem: { id: number };
+    };
+    const isFavourited = favorites.some((fav: FavoriteItem) => fav.poem && fav.poem.id === safeCurrentPage && fav.writer && fav.writer.name === bookId);
     const safeNextPage = Math.min(safeCurrentPage + 1, totalPages - 1);
     const safePrevPage = Math.max(safeCurrentPage - 1, 0);
 
@@ -201,6 +217,66 @@ const PageCurlReader = forwardRef<any, PageCurlReaderProps>(
     }));
 
     const styles = StyleSheet.create({
+      hamburger: {
+        position: 'absolute',
+        top: 45,
+        right: 18,
+        zIndex: 30,
+        backgroundColor: theme.pageBackground,
+        borderRadius: 24,
+        padding: 8,
+        shadowColor: theme.shadowColor,
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+        elevation: 6,
+      },
+      controlsBar: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 25,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: theme.pageBackground,
+        paddingHorizontal: 18,
+        paddingVertical: 12,
+        borderBottomLeftRadius: 18,
+        borderBottomRightRadius: 18,
+        shadowColor: theme.shadowColor,
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 8,
+      },
+      controlButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.background,
+        borderRadius: 12,
+        paddingVertical: 8,
+        paddingHorizontal: 14,
+        marginHorizontal: 6,
+        elevation: 2,
+        shadowColor: theme.shadowColor,
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+      },
+      controlText: {
+        fontSize: 15,
+        color: theme.textColor,
+        marginLeft: 7,
+        fontWeight: '500',
+      },
+      favIndicator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#ffd700',
+        borderRadius: 18,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        marginLeft: 8,
+      },
       container: {
         flex: 1,
         backgroundColor: theme.background,
@@ -288,8 +364,39 @@ const PageCurlReader = forwardRef<any, PageCurlReaderProps>(
       }
     });
 
+
+    // Controls handlers
+    const handleFontSizeChange = (delta: number) => {
+      let newFontSize = Math.max(12, Math.min(32, fontSize + delta));
+      setFontSize(newFontSize);
+      setLineHeight(Math.round(newFontSize * 1.6));
+    };
+
+    // Add current page to global favourites
+    const handleAddToFavourites = () => {
+      if (!isFavourited) {
+        addToFavorites(
+          {
+            id: 0,
+            name: bookId,
+            period: "",
+            image: "",
+            gallery: [],
+            biography: "",
+            poems: [],
+          },
+          {
+            id: safeCurrentPage,
+            title: `${title || "Untitled"} - Page ${safeCurrentPage + 1}`,
+            year: "",
+            content: pageSnippet,
+          }
+        );
+      }
+    };
+
     if (totalPages === 0) {
-      return (      
+      return (
         <View style={[styles.container, styles.center]}>
           <Text style={styles.content}>No content available</Text>
         </View>
@@ -305,6 +412,39 @@ const PageCurlReader = forwardRef<any, PageCurlReaderProps>(
           barStyle={isDarkMode ? "light-content" : "dark-content"} 
           backgroundColor={theme.background}
         />
+
+        {/* Hamburger menu button */}
+        <TouchableOpacity style={styles.hamburger} onPress={() => setControlsVisible(!controlsVisible)}>
+          <Menu width={26} height={26} color={theme.headerColor} />
+        </TouchableOpacity>
+
+        {/* Top controls bar (not modal) */}
+        {controlsVisible && (
+          <View style={styles.controlsBar}>
+            <TouchableOpacity style={styles.controlButton} onPress={() => handleFontSizeChange(2)}>
+              <Text style={styles.controlText}>A</Text>
+              <Plus width={16} height={16} color={theme.textColor} />
+
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.controlButton} onPress={() => handleFontSizeChange(-2)}>
+              <Text style={styles.controlText}>A</Text>
+              <Minus width={16} height={16} color={theme.textColor} />
+
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.controlButton} onPress={handleAddToFavourites} disabled={isFavourited}>
+              {isFavourited ? (
+                <StarFilled width={20} height={20} color="#ffd700" />
+              ) : (
+                <StarOutline width={20} height={20} color={theme.textColor} />
+              )}
+              <Text style={styles.controlText}>{isFavourited ? "Favourited" : "Favourite"}</Text>
+            </TouchableOpacity>
+           
+          </View>
+        )}
+
+       
+
         {title && (
           <View style={styles.header}>
             <Text style={styles.title} numberOfLines={1} ellipsizeMode="middle">{title}</Text>
@@ -315,60 +455,45 @@ const PageCurlReader = forwardRef<any, PageCurlReaderProps>(
             {translations.page} {currentPage + 1} {translations.of} {totalPages}
           </Text>
         </View>
-        
-        
+
         <GestureDetector gesture={panGesture}>
-            <View style={styles.bookContainer}>
-                {/* ✨ FIX: Simplified and corrected page layering to prevent "mixed text".
-                  - The current page is always visible and stationary.
-                  - The animated view sits on top and contains the *content of the next page*.
-                  - The animated view is opaque, so it correctly covers the current page while turning.
-                */}
-
-                {/* Current Page (always visible underneath) */}
-                <View style={[styles.page, { zIndex: 1 }]}>
-                    <Text style={styles.content}>{pages[safeCurrentPage]}</Text>
-                </View>
-                
-                {/* Animated Turning Page */}
-                {/* This view only renders when a forward swipe is possible. */}
-                {currentPage < totalPages - 1 && (
-                    <Animated.View
-                        style={[
-                            styles.page,
-                            { zIndex: 10 },
-                            pageAnimatedStyle,
-                            turnPageVisibility,
-                        ]}
-                    >
-                        {/* It ONLY contains the content of the NEXT page. */}
-                        <Text style={styles.content}>{pages[safeNextPage]}</Text>
-
-                        {/* Overlays for shadow and corner curl effect */}
-                        <Animated.View style={[styles.cornerCurl, cornerOpacity]}>
-                            <LinearGradient
-                                colors={["transparent", "rgba(0,0,0,0.25)"]}
-                                start={{ x: 0.5, y: 0.5 }}
-                                end={{ x: 1, y: 1 }}
-                                style={styles.cornerGradient}
-                            />
-                        </Animated.View>
-                        <Animated.View style={[styles.gradientOverlay, gradientOpacity]}>
-                            <LinearGradient
-                                start={{ x: 0, y: 0 }}
-                                end={{ x: 1, y: 0 }}
-                                colors={[`${theme.shadowColor}55`, "transparent"]}
-                                style={StyleSheet.absoluteFill}
-                            />
-                        </Animated.View>
-                    </Animated.View>
-                )}
+          <View style={styles.bookContainer}>
+            {/* Current Page (always visible underneath) */}
+            <View style={[styles.page, { zIndex: 1 }]}>
+              <Text style={[styles.content, { fontSize, lineHeight }]}>{pages[safeCurrentPage]}</Text>
             </View>
+            {/* Animated Turning Page */}
+            {currentPage < totalPages - 1 && (
+              <Animated.View
+                style={[
+                  styles.page,
+                  { zIndex: 10 },
+                  pageAnimatedStyle,
+                  turnPageVisibility,
+                ]}
+              >
+                <Text style={[styles.content, { fontSize, lineHeight }]}>{pages[safeNextPage]}</Text>
+                {/* Overlays for shadow and corner curl effect */}
+                <Animated.View style={[styles.cornerCurl, cornerOpacity]}>
+                  <LinearGradient
+                    colors={["transparent", "rgba(0,0,0,0.25)"]}
+                    start={{ x: 0.5, y: 0.5 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.cornerGradient}
+                  />
+                </Animated.View>
+                <Animated.View style={[styles.gradientOverlay, gradientOpacity]}>
+                  <LinearGradient
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    colors={[`${theme.shadowColor}55`, "transparent"]}
+                    style={StyleSheet.absoluteFill}
+                  />
+                </Animated.View>
+              </Animated.View>
+            )}
+          </View>
         </GestureDetector>
-
-
-        {/* Footer */}
-      
       </SafeAreaView>
     );
   }

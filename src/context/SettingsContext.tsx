@@ -40,6 +40,7 @@ interface FavoriteItem {
 interface ReadingProgress {
     bookId: number;
     position: number;
+    totalPages: number;
     timestamp: number;
 }
 
@@ -54,7 +55,7 @@ interface SettingsContextType {
     script: 'cyr' | 'lat';
     toggleScript: () => Promise<void>;
     readingProgress: { [key: number]: ReadingProgress };
-    updateReadingProgress: (bookId: number, position: number) => void;
+    updateReadingProgress: (bookId: number, position: number, totalPages: number) => void;
 }
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -172,13 +173,14 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
     }, [script]);
 
-    const updateReadingProgress = useCallback((bookId: number, position: number) => {
+    const updateReadingProgress = useCallback((bookId: number, position: number, totalPages: number) => {
         setReadingProgress(current => {
             const newProgress = {
                 ...current,
                 [bookId]: {
                     bookId,
                     position,
+                    totalPages,
                     timestamp: Date.now()
                 }
             };

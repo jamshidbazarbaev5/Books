@@ -1,5 +1,6 @@
 import { NavigationContainer } from "@react-navigation/native"
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
+import { createStackNavigator } from "@react-navigation/stack"
 import { SafeAreaProvider } from "react-native-safe-area-context"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { ThemeProvider, useTheme } from './src/context/ThemeContext.tsx'
@@ -10,16 +11,69 @@ import { RefreshButton } from "./src/components/RefreshButton"
 import { Users, Heart, Settings, Book, Globe } from "react-native-feather"
 
 // Screens
-import WritersNavigator from './src/navigation/WritersNavigation.tsx'
+import WritersScreen from './src/screens/WritersScreen'
+import WriterDetailScreen from './src/screens/WriterDetailScreen'
+import PoemScreen from './src/screens/PoemScreen'
 import FavoritesScreen from './src/screens/FavouritesScreen.tsx'
 import SettingsScreen from "./src/screens/SettingsScreen"
 import BookListScreen from "./src/screens/BookListScreen.tsx"
 import DevelopersScreen from "./src/screens/DevelopersScreen"
 import NationalWritingsScreen from "./src/screens/NationalWritingsScreen"
 import IntroductionScreen from "./src/screens/IntroductionScreen"
+import RiddleScreen from './src/screens/RiddleScreen'
+import AdvancedEpubReaderScreen from './src/screens/AdvancedEpubReaderScreen'
 import { useFirstLaunch } from "./src/hooks/useFirstLaunch"
 
 const Tab = createBottomTabNavigator()
+const Stack = createStackNavigator()
+
+function WritersStack() {
+  const { theme } = useTheme()
+  const { fontSize } = useSettings()
+
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: theme.cardBackground,
+        },
+        headerTintColor: theme.textColor,
+        headerTitleStyle: {
+          fontWeight: "bold",
+          color: theme.textColor,
+          fontSize: fontSize * 1.2,
+        },
+      }}
+    >
+      <Stack.Screen name="WritersList" component={WritersScreen} options={{headerShown:false}} />
+      <Stack.Screen
+        name="WriterDetail"
+        component={WriterDetailScreen}
+        options={({ route }) => ({ title: route.params?.writer?.name_cyr })}
+      />
+      <Stack.Screen
+        name="Poem"
+        component={PoemScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="Riddle"
+        component={RiddleScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="NationalWritings"
+        component={NationalWritingsScreen}
+        options={{ title: "National Writings" }}
+      />
+      <Stack.Screen
+        name="AdvancedEpubReader"
+        component={AdvancedEpubReaderScreen}
+        options={{ headerShown: false }}
+      />
+    </Stack.Navigator>
+  )
+}
 
 function TabNavigator() {
   const { theme } = useTheme()
@@ -40,15 +94,11 @@ function TabNavigator() {
             return <Users stroke={color} width={iconSize} height={iconSize} />
           } else if (route.name === "Books") {
             return <Book stroke={color} width={iconSize} height={iconSize} />
-          } else if (route.name === "National") {
-            return <Globe stroke={color} width={iconSize} height={iconSize} />
           } else if (route.name === "Favorites") {
             return <Heart stroke={color} width={iconSize} height={iconSize} />
           } else if (route.name === "Settings") {
             return <Settings stroke={color} width={iconSize} height={iconSize} />
-          }  else if (route.name === "ss") {
-            return <Settings stroke={color} width={iconSize} height={iconSize} />
-          } 
+          }
         },
         tabBarActiveTintColor: theme.accentColor,
         tabBarInactiveTintColor: theme.secondaryTextColor,
@@ -78,18 +128,13 @@ function TabNavigator() {
       ) : null}
       <Tab.Screen 
         name="Writers" 
-        component={WritersNavigator}
+        component={WritersStack}
         options={{ tabBarLabel: translations.authors }} 
       />
       <Tab.Screen 
         name="Books" 
         component={BookListScreen}
         options={{ tabBarLabel: translations.books }} 
-      />
-      <Tab.Screen 
-        name="National" 
-        component={NationalWritingsScreen}
-        options={{ tabBarLabel: translations.nationalWritings }} 
       />
       <Tab.Screen 
         name="Favorites" 

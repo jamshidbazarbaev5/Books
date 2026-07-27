@@ -229,7 +229,7 @@ const SettingsScreen = () => {
               <Text style={[styles.versionText, { color: theme.secondaryTextColor, fontSize }]}>1.0.0</Text>
             </View>
 
-            <TouchableOpacity
+            {/* <TouchableOpacity
               style={[
                 styles.settingItem,
                 {
@@ -249,7 +249,7 @@ const SettingsScreen = () => {
               <View style={styles.chevronContainer}>
                 <ChevronRight stroke={theme.accentColor} width={22} height={22} />
               </View>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
         </Animated.View>
       </ScrollView>
